@@ -3,7 +3,7 @@ NAME		= tinky
 CC			= gcc
 CFLAGS		= -Wall -Wx
 
-SRC			= tinky.c ServiceMain.c
+SRC			= tinky.c ServiceMain.c Impersonation.c
 OBJ			= $(SRC:.c=.o)
 
 all: $(NAME)
