@@ -1,0 +1,44 @@
+General guidelines
+• This project needs to be done on a Virtual Machine.
+• Only C or C++ is allowed.
+• Your Makefile will need to be evaluated with NMAKE.
+• You must use CL as compiler.
+• You must compile with the flags /Wall and /WX
+• Within the mandatory part, you must use the following functions:
+◦ OpenSCManager
+◦ CreateService
+◦ OpenService
+◦ StartService
+◦ ControlService
+◦ CloseServiceHandle
+◦ DuplicateTokenEx
+• Disable Windows defender if needed.
+Please read the the official MSDN documentation.
+You can use any tools you want to set up your host virtual machine.
+
+
+Mandatory part
+IV.1 Service
+• The program must be named svc.
+• The service must be named tinky.
+• The following options are available to handle the service:
+◦ install
+◦ start
+◦ stop
+◦ delete
+• Once the service starts running it must:
+◦ Impersonate a SYSTEM token.
+◦ Launch the Keylogger with it in the background.
+• Only one instance of the Keylogger can run.
+• On removal of the service, the Keylogger must be killed.
+
+IV.2 Keylogger
+• The program must be named winkey.
+• This must detect foreground processes.
+• This must save every keystroke related to the current foreground process.
+• Keyboard input must be handled in a low-level hook.
+• Timestamp, foreground process information and their related key stroke must be
+saved in a log file.
+• Keystroke input must be saved in a human readable format.
+• Keystroke input must be saved accordingly to the current locale identifier.
+Please read the the official MSDN documentation.

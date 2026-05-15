@@ -63,20 +63,70 @@ void WINAPI ServiceMain(DWORD argc, LPSTR *argv)
     }
 
     // Impersonate SYSTEM token
-    Impersonate_token();
+    HANDLE system_token = impersonate_token();
+    if (!system_token)
+    {
+        g_service_status.dwCurrentState = SERVICE_STOPPED;
+        g_service_status.dwWin32ExitCode = GetLastError();
+        SetServiceStatus(g_handler_svc, &g_service_status);
+        CloseHandle(g_event);
+        return;
+    }
 
     // Met à jour le statut du service à RUNNING
     g_service_status.dwCurrentState = SERVICE_RUNNING;
     g_service_status.dwControlsAccepted = SERVICE_ACCEPT_STOP;
     SetServiceStatus(g_handler_svc, &g_service_status);
 
-    // logique winkey ici
+    // Lancement de winkey avec le token SYSTEM
+    STARTUPINFOA startup_info;
+    PROCESS_INFORMATION process_info;
+    ZeroMemory(&startup_info, sizeof(STARTUPINFOA));
+    startup_info.cb = sizeof(STARTUPINFOA);
+    ZeroMemory(&process_info, sizeof(PROCESS_INFORMATION));
 
+    // Génération dynamique du chemin vers winkey.exe
+    char winkey_path[MAX_PATH];
+    GetModuleFileNameA(NULL, winkey_path, MAX_PATH);
+    char *last_slash = strrchr(winkey_path, '\\');
+    if (last_slash)
+        strcpy(last_slash + 1, "winkey.exe");
+    else
+        strcpy(winkey_path, "winkey.exe");
+
+    // Lancement de winkey.exe en tant que SYSTEM
+    if (!CreateProcessAsUserA(
+            system_token,
+            winkey_path,
+            NULL,
+            NULL,
+            FALSE,
+            CREATE_NO_WINDOW,
+            NULL,
+            NULL,
+            &startup_info,
+            &process_info))
+    {
+        printf("CreateProcessAsUser failed (%lu)\n", GetLastError());
+        CloseHandle(system_token);
+        CloseHandle(g_event);
+        g_service_status.dwCurrentState = SERVICE_STOPPED;
+        g_service_status.dwWin32ExitCode = GetLastError();
+        SetServiceStatus(g_handler_svc, &g_service_status);
+        return;
+    }
 
     // Boucle / attente jusqu'au STOP / SHUTDOWN
     WaitForSingleObject(g_event, INFINITE);
 
     // Nettoyage avant l'arrêt du service
+    if (process_info.hProcess)
+    {
+        TerminateProcess(process_info.hProcess, 0); // On tue winkey proprement
+        CloseHandle(process_info.hProcess);
+        CloseHandle(process_info.hThread);
+    }
+    CloseHandle(system_token);
     CloseHandle(g_event);
     g_service_status.dwCurrentState = SERVICE_STOPPED;
     SetServiceStatus(g_handler_svc, &g_service_status);

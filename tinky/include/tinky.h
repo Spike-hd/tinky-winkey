@@ -5,12 +5,12 @@
 #include <stdio.h>
 
 #define SERVICE_NAME "tinky"
-#define BINARY_PATH "C:\\Users\\Hadri\\Desktop\\42\\tinky-winkey\\tinky.exe"
 
 SERVICE_STATUS_HANDLE g_handler_svc;
 SERVICE_STATUS g_service_status;
 HANDLE g_event = NULL;
 
 void WINAPI ServiceMain(DWORD argc, LPSTR *argv);
+HANDLE impersonate_token();
 
 #endif
