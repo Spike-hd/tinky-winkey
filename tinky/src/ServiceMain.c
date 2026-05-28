@@ -1,7 +1,7 @@
 #include "tinky.h"
 
 // Fonction de gestion des contrôles du service
-void ServiceCtrlHandler(DWORD event)
+void WINAPI ServiceCtrlHandler(DWORD event)
 {
     switch (event)
     {
@@ -91,9 +91,9 @@ void WINAPI ServiceMain(DWORD argc, LPSTR *argv)
     GetModuleFileNameA(NULL, winkey_path, MAX_PATH);
     char *last_slash = strrchr(winkey_path, '\\');
     if (last_slash)
-        strcpy(last_slash + 1, "winkey.exe");
+        strcpy_s(last_slash + 1, MAX_PATH - (size_t)(last_slash + 1 - winkey_path), "winkey.exe");
     else
-        strcpy(winkey_path, "winkey.exe");
+        strcpy_s(winkey_path, MAX_PATH, "winkey.exe");
 
     // Lancement de winkey.exe en tant que SYSTEM
     if (!CreateProcessAsUserA(
