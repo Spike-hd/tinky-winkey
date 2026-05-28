@@ -1,5 +1,7 @@
 CC = cl
-CFLAGS = /nologo /Wall /WX /wd4668 /wd4820 /I tinky\include /I winkey\include
+# Keep /Wall /WX but silence warnings from external headers (SDK)
+# Add /external:W0 and /external:anglebrackets to suppress warnings in system headers
+CFLAGS = /nologo /Wall /WX /wd4668 /wd4820 /external:W0 /external:anglebrackets /I tinky\include /I winkey\include
 LDFLAGS_SVC = Advapi32.lib
 LDFLAGS_WINKEY = User32.lib
 
