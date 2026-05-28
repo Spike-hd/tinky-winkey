@@ -93,7 +93,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         WCHAR unicodeBuffer[8] = {0};
         int result = ToUnicodeEx(vkCode, pKeyboard->scanCode, keyboardState, unicodeBuffer, 7, 0, keyboardLayout);
 
-        int ctrlDown = (keyboardState[VK_CONTROL] & 0x80) ? 1 : 0;
+        int ctrlDown = (GetAsyncKeyState(VK_CONTROL) & 0x8000) ? 1 : 0;
         if (ctrlDown) {
             // si la touche est une lettre ou un chiffre, afficher directement le VK
             if ((vkCode >= 'A' && vkCode <= 'Z') || (vkCode >= '0' && vkCode <= '9')) {
