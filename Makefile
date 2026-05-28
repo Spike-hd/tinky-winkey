@@ -1,5 +1,5 @@
 CC = cl
-CFLAGS = /nologo /Wall /WX /wd4668 /I tinky\include /I winkey\include
+CFLAGS = /nologo /Wall /WX /wd4668 /wd4820 /I tinky\include /I winkey\include
 LDFLAGS_SVC = Advapi32.lib
 LDFLAGS_WINKEY = User32.lib
 
