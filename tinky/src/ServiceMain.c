@@ -35,6 +35,9 @@ void WINAPI ServiceCtrlHandler(DWORD event)
 // Point d'entrée principal du service
 void WINAPI ServiceMain(DWORD argc, LPSTR *argv)
 {
+    (void)argc;
+    (void)argv;
+
     // initialize SERVICE_STATUS structure pour le start du service
     g_handler_svc = RegisterServiceCtrlHandler(SERVICE_NAME, ServiceCtrlHandler);
     if (g_handler_svc == NULL)
