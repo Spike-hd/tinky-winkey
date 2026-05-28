@@ -9,7 +9,7 @@ BOOL match_process_name(const char *process_name, const char *target_name)
 
 
 
-HANDLE impersonate_token()
+HANDLE impersonate_token(void)
 {
     // Etape 1 : obtenir le PID de winlogon.exe
     // snapshot des processus
