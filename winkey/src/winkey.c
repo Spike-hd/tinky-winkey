@@ -12,7 +12,7 @@ char *get_clean_process_name(const char* full_path) {
 
 char* get_log_file_path(char* buffer, size_t buffer_size) {
     // recup path exe
-    if (!GetModuleFileNameA(NULL, buffer, buffer_size)) {
+    if (!GetModuleFileNameA(NULL, buffer, (DWORD)buffer_size)) {
         return NULL;
     }
     // trouver dernier \ et remplacer par null pr tronquer avec edge case si pas de '\'
