@@ -1,5 +1,9 @@
 #include "tinky.h"
 
+SERVICE_STATUS_HANDLE g_handler_svc;
+SERVICE_STATUS g_service_status;
+HANDLE g_event = NULL;
+
 // Fonction de gestion des contrôles du service
 void WINAPI ServiceCtrlHandler(DWORD event)
 {
