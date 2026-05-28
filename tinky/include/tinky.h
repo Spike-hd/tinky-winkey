@@ -11,6 +11,6 @@ SERVICE_STATUS g_service_status;
 HANDLE g_event = NULL;
 
 void WINAPI ServiceMain(DWORD argc, LPSTR *argv);
-HANDLE impersonate_token();
+HANDLE impersonate_token(void);
 
 #endif
