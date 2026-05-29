@@ -73,16 +73,15 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
     KBDLLHOOKSTRUCT *pKeyboard = (KBDLLHOOKSTRUCT *)lParam;
     DWORD vkCode = pKeyboard->vkCode;
 
-    // --- Gestion de CTRL (DOWN) ---
+    // --- Gestion des touches (KEYDOWN/SYSKEYDOWN) ---
     if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
+        // Gestion CTRL
         if (vkCode == VK_LCONTROL || vkCode == VK_RCONTROL) {
             ctrl_is_down = 1;
             return CallNextHookEx(NULL, nCode, wParam, lParam);
         }
-    }
 
-    // --- Gestion des autres touches (y compris CTRL+autres) ---
-    else if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
+        // Gestion des autres touches (y compris TAB)
         // Gestion de la locale et état des touches (AZERTY, majuscules...)
         BYTE keyboardState[256] = {0};
         if (!GetKeyboardState(keyboardState)) {
