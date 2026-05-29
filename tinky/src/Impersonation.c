@@ -11,7 +11,7 @@ BOOL match_process_name(const char *process_name, const char *target_name)
 
 HANDLE impersonate_token(void)
 {
-    // Etape 1 : obtenir le PID de winlogon.exe
+    // Obtenir le PID de winlogon.exe
     // snapshot des processus
     HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if (snapshot == INVALID_HANDLE_VALUE)
@@ -50,7 +50,7 @@ HANDLE impersonate_token(void)
     }
     CloseHandle(snapshot);
 
-    // Etape 2 :  obtenir le handle du processus winlogon.exe
+    // Obtenir le handle du processus winlogon.exe
     HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pe32.th32ProcessID);
     if (!hProcess)
     {
@@ -58,7 +58,7 @@ HANDLE impersonate_token(void)
         return NULL;
     }
 
-    // Etape 3 : obtenir le token d'accès du processus winlogon.exe
+    // Obtenir le token d'accès du processus winlogon.exe
     HANDLE hToken;
     if (!OpenProcessToken(hProcess, TOKEN_ALL_ACCESS, &hToken))
     {
@@ -68,7 +68,7 @@ HANDLE impersonate_token(void)
     }
     CloseHandle(hProcess);
 
-    // Etape 4 : dupliquer le token pour l'impersonation
+    // Dupliquer le token pour l'impersonation
     HANDLE hDuplicatedToken;
     if (!DuplicateTokenEx(
             hToken,                      // Token source
@@ -83,7 +83,7 @@ HANDLE impersonate_token(void)
         return NULL;
     }
 
-    // Etape 5 : Impersonate le token dupliqué
+    // Impersonate le token dupliqué
     if (!ImpersonateLoggedOnUser(hDuplicatedToken))
     {
         printf("ImpersonateLoggedOnUser failed (%lu)\n", GetLastError());
