@@ -79,12 +79,10 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             ctrl_is_down = 1;
             return CallNextHookEx(NULL, nCode, wParam, lParam);
         }
-
-        }
     }
 
     // --- Gestion des autres touches (y compris CTRL+autres) ---
-    if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
+    else if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
         // Gestion de la locale et état des touches (AZERTY, majuscules...)
         BYTE keyboardState[256] = {0};
         if (!GetKeyboardState(keyboardState)) {
