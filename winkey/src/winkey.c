@@ -80,26 +80,6 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             return CallNextHookEx(NULL, nCode, wParam, lParam);
         }
 
-        // --- Gestion de TAB (priorité absolue pour éviter les conflits) ---
-        if (vkCode == VK_TAB) {
-            // Vérifier CTRL gauche OU droite explicitement
-            if ((GetAsyncKeyState(VK_LCONTROL) & 0x8000) || (GetAsyncKeyState(VK_RCONTROL) & 0x8000)) {
-                suppress_ctrl_up = 1;
-                LogKey(" [CTRL+TAB] ");
-                return CallNextHookEx(NULL, nCode, wParam, lParam);
-            }
-            // Ignorer WM_SYSKEYDOWN pour TAB seul ou ALT+TAB
-            if (wParam == WM_SYSKEYDOWN) {
-                return CallNextHookEx(NULL, nCode, wParam, lParam);
-            }
-            // Vérifier si ALT est enfoncé
-            if (GetAsyncKeyState(VK_MENU) & 0x8000) {
-                LogKey(" [ALT+TAB] ");
-                return CallNextHookEx(NULL, nCode, wParam, lParam);
-            }
-            // TAB seul
-            LogKey(" [TAB] ");
-            return CallNextHookEx(NULL, nCode, wParam, lParam);
         }
     }
 
