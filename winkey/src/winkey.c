@@ -82,8 +82,8 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
         // --- Gestion de TAB (priorité absolue pour éviter les conflits) ---
         if (vkCode == VK_TAB) {
-            // Vérifier si CTRL est enfoncé EN PREMIER
-            if (ctrl_is_down || (GetAsyncKeyState(VK_CONTROL) & 0x8000)) {
+            // Vérifier CTRL gauche OU droite explicitement
+            if ((GetAsyncKeyState(VK_LCONTROL) & 0x8000) || (GetAsyncKeyState(VK_RCONTROL) & 0x8000)) {
                 suppress_ctrl_up = 1;
                 LogKey(" [CTRL+TAB] ");
                 return CallNextHookEx(NULL, nCode, wParam, lParam);
